@@ -1824,6 +1824,9 @@ object RDD {
   // them automatically. However, we still keep the old functions in SparkContext for backward
   // compatibility and forward to the following functions directly.
 
+  //add by uwoer
+  //rdd没有reducebyKey()等类似的方法
+  //需要隐式转换为PairRDDFunctions 进行相关的处理
   implicit def rddToPairRDDFunctions[K, V](rdd: RDD[(K, V)])
     (implicit kt: ClassTag[K], vt: ClassTag[V], ord: Ordering[K] = null): PairRDDFunctions[K, V] = {
     new PairRDDFunctions(rdd)
