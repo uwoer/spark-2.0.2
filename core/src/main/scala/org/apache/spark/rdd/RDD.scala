@@ -280,6 +280,8 @@ abstract class RDD[T: ClassTag](
     if (storageLevel != StorageLevel.NONE) {
       getOrCompute(split, context)
     } else {
+      //add by uwoer
+      //进行rdd的计算
       computeOrReadCheckpoint(split, context)
     }
   }

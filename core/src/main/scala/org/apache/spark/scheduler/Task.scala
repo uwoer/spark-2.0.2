@@ -68,6 +68,8 @@ private[spark] abstract class Task[T](
       attemptNumber: Int,
       metricsSystem: MetricsSystem): T = {
     SparkEnv.get.blockManager.registerTask(taskAttemptId)
+
+    //task执行上下文 task重试次数 task所属于的stage task要处理的是哪个rdd的partition
     context = new TaskContextImpl(
       stageId,
       partitionId,
@@ -83,6 +85,7 @@ private[spark] abstract class Task[T](
       kill(interruptThread = false)
     }
     try {
+      //调用抽象方法
       runTask(context)
     } catch {
       case e: Throwable =>

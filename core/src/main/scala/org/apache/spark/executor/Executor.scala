@@ -237,6 +237,9 @@ private[spark] class Executor(
       Thread.interrupted()
     }
 
+    /**
+      * 执行task的入口
+      */
     override def run(): Unit = {
       val taskMemoryManager = new TaskMemoryManager(env.memoryManager, taskId)
       val deserializeStartTime = System.currentTimeMillis()
@@ -248,6 +251,7 @@ private[spark] class Executor(
       startGCTime = computeTotalGcTime()
 
       try {
+        //对序列化的task数据进行反序列化
         val (taskFiles, taskJars, taskProps, taskBytes) =
           Task.deserializeWithDependencies(serializedTask)
 
@@ -255,6 +259,7 @@ private[spark] class Executor(
         // requires access to properties contained within (e.g. for access control).
         Executor.taskDeserializationProps.set(taskProps)
 
+        //通过网络通信将需要的文件，资源，jars拷贝过来
         updateDependencies(taskFiles, taskJars)
         task = ser.deserialize[Task[Any]](taskBytes, Thread.currentThread.getContextClassLoader)
         task.localProperties = taskProps
@@ -274,6 +279,7 @@ private[spark] class Executor(
         env.mapOutputTracker.updateEpoch(task.epoch)
 
         // Run the actual task and measure its runtime.
+        //task的开始时间
         taskStart = System.currentTimeMillis()
         var threwException = true
         val value = try {
@@ -307,6 +313,7 @@ private[spark] class Executor(
             }
           }
         }
+        //task的结束时间
         val taskFinish = System.currentTimeMillis()
 
         // If the task has been killed, let's fail it.
@@ -479,6 +486,8 @@ private[spark] class Executor(
       for ((name, timestamp) <- newFiles if currentFiles.getOrElse(name, -1L) < timestamp) {
         logInfo("Fetching " + name + " with timestamp " + timestamp)
         // Fetch file with useCache mode, close cache for local mode.
+
+        //从远程拉取文件到本地
         Utils.fetchFile(name, new File(SparkFiles.getRootDirectory()), conf,
           env.securityManager, hadoopConf, timestamp, useCache = !isLocal)
         currentFiles(name) = timestamp
