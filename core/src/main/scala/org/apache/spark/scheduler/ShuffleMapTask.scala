@@ -47,7 +47,10 @@ import org.apache.spark.shuffle.ShuffleWriter
 
 /**
   * add by uwoer
-  * 一个ShuffleMapTask会将一个rdd切分为多个buckets（基于ShuffleDependency中指定的partitioner 默认是HashPartition）
+  * 一个ShuffleMapTask会将一个rdd切分为多个buckets
+  * （基于ShuffleDependency中指定的partitioner
+  * spark1.2之前默认是HashPartitioner；spark1.2之后默认的是SortShuffleManager）
+  * 参加：https://www.cnblogs.com/hd-zg/p/6089230.html
   */
 private[spark] class ShuffleMapTask(
     stageId: Int,
@@ -94,7 +97,7 @@ private[spark] class ShuffleMapTask(
 
       //调用rdd的iterator()方法,并且传入了当前task要处理的那个partition
       //核心逻辑就是在rdd的iterator()方法中，实现针对rdd的某个partition执行我们自己定义的算子或者函数
-      //将返回的数据经过HashPartitioner进行分区，写入到自己对应的分区bucket中
+      // todo 将返回的数据经过HashPartitioner进行分区，写入到自己对应的分区bucket中 这里有问题待分析
       writer.write(rdd.iterator(partition, context).asInstanceOf[Iterator[_ <: Product2[Any, Any]]])
 
       //返回结果 MapStatus
