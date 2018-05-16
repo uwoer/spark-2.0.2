@@ -49,8 +49,8 @@ import org.apache.spark.shuffle.ShuffleWriter
   * add by uwoer
   * 一个ShuffleMapTask会将一个rdd切分为多个buckets
   * （基于ShuffleDependency中指定的partitioner
-  * spark1.2之前默认是HashPartitioner；spark1.2之后默认的是SortShuffleManager）
-  * 参加：https://www.cnblogs.com/hd-zg/p/6089230.html
+  *  spark1.2之前默认是HashPartitioner；spark1.2之后默认的是SortShuffleManager
+  * 参加：https://www.cnblogs.com/hd-zg/p/6089230.html）
   */
 private[spark] class ShuffleMapTask(
     stageId: Int,
