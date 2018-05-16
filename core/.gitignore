@@ -7,7 +7,7 @@
 *stdout.log
 *debug.log
 .gradle
-.idea
+#.idea
 
 
 # Package Files #
