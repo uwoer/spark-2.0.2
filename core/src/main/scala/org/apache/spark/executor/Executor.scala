@@ -282,6 +282,10 @@ private[spark] class Executor(
         //task的开始时间
         taskStart = System.currentTimeMillis()
         var threwException = true
+
+        //这里的value对于ShuffleMapTask来说其实就是MapStatus 其中封装有计算的结果数据 以及 数据的输出位置
+        //如果后面的还有一个ShuffleMapTask 则会通过MapOutPutTracker来获取上一个ShuffleMapTask的结果输出位置，然后通过网络拉取数据
+        //ResultTask 其实也一样
         val value = try {
           val res = task.run(
             taskAttemptId = taskId,
@@ -321,6 +325,7 @@ private[spark] class Executor(
           throw new TaskKilledException
         }
 
+        //对MapStatus进行序列化和封装  以便后面通过网络发送给driver
         val resultSer = env.serializer.newInstance()
         val beforeSerialization = System.currentTimeMillis()
         val valueBytes = resultSer.serialize(value)
@@ -328,6 +333,8 @@ private[spark] class Executor(
 
         // Deserialization happens in two parts: first, we deserialize a Task object, which
         // includes the Partition. Second, Task.run() deserializes the RDD and function to be run.
+
+        //执行task相关metrics的信息的统计及封装  sparkUI中会显示
         task.metrics.setExecutorDeserializeTime(
           (taskStart - deserializeStartTime) + task.executorDeserializeTime)
         // We need to subtract Task.run()'s deserialization time to avoid double-counting
@@ -364,6 +371,7 @@ private[spark] class Executor(
           }
         }
 
+        //调用当前executor所在的CoarseGrainedExecutorBackend进程的statusUpdate()方法更新task的状态
         execBackend.statusUpdate(taskId, TaskState.FINISHED, serializedResult)
 
       } catch {
