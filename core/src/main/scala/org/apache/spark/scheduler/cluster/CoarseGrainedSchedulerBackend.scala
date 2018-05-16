@@ -134,6 +134,7 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
           }
         }
 
+      //backend.reviveOffers()
       case ReviveOffers =>
         makeOffers()
 
@@ -214,9 +215,14 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     private def makeOffers() {
       // Filter out executors under killing
       val activeExecutors = executorDataMap.filterKeys(executorIsAlive)
+
+      //将每个executor可用的cup执行数等信息封装成WorkerOffer
       val workOffers = activeExecutors.map { case (id, executorData) =>
         new WorkerOffer(id, executorData.executorHost, executorData.freeCores)
       }.toSeq
+
+      //1.调用TaskSchedulerImpl的resourceOffers()方法，执行任务分配算法，讲各个task分配到executor上
+      //2.task分配到executor上后，执行这里的launchTasks()方法 发送LaunchTask消息到对应的executor上,由executor启动并执行task
       launchTasks(scheduler.resourceOffers(workOffers))
     }
 
@@ -245,8 +251,14 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
     }
 
     // Launch tasks returned by a set of resource offers
+    /**
+      * add by uwoer
+      * 根据分配好的情况在executor上启动相应的task
+      */
     private def launchTasks(tasks: Seq[Seq[TaskDescription]]) {
       for (task <- tasks.flatten) {
+
+        //首先将每个executor中药执行的task信息进行序列化
         val serializedTask = ser.serialize(task)
         if (serializedTask.limit >= maxRpcMessageSize) {
           scheduler.taskIdToTaskSetManager.get(task.taskId).foreach { taskSetMgr =>
@@ -262,12 +274,15 @@ class CoarseGrainedSchedulerBackend(scheduler: TaskSchedulerImpl, val rpcEnv: Rp
           }
         }
         else {
+          //找到对应的executor
           val executorData = executorDataMap(task.executorId)
+          //进行相应的资源增减
           executorData.freeCores -= scheduler.CPUS_PER_TASK
 
           logInfo(s"Launching task ${task.taskId} on executor id: ${task.executorId} hostname: " +
             s"${executorData.executorHost}.")
 
+          //通过向executor发送LaunchTask消息来下发task任务
           executorData.executorEndpoint.send(LaunchTask(new SerializableBuffer(serializedTask)))
         }
       }
