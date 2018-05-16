@@ -457,6 +457,7 @@ class DAGScheduler(
         val rddHasUncachedPartitions = getCacheLocs(rdd).contains(Nil)
         if (rddHasUncachedPartitions) {
           //遍历rdd的依赖
+          //对于每一种有shuffle的操作，比如groupByKey,reduceByKey,countByKey底层对应三个RDD:MapPartitionsRdd==>ShuffledRDD==>MapPartitionsRdd
           for (dep <- rdd.dependencies) {
             dep match {
               //如果是宽依赖
@@ -866,6 +867,11 @@ class DAGScheduler(
     * stage划分算法的入口
     * stage划分算法 由submitStage()和getMissingParentStages()共同完成
     *
+    * stage划分总结
+    * 1、从finalStage倒推
+    * 2、通过宽依赖来进行新的stage的划分
+    * 3、使用递归，优先提交父stage
+    *
     * 通过这个可以知道 一个sparkApp被划分为几个job,每个job被划分为几个stage,
     * 每个stage包含哪些代码，这样就可以根据stage包含的代码确定区间进行性能调优以及问题排查
     */
@@ -963,9 +969,9 @@ class DAGScheduler(
 
   /** Submits stage, but first recursively submits any missing parents. */
   /**
-  * add by uwoer
-  * 提交stage 的方法
-  */
+    * add by uwoer
+    * 提交stage 的方法
+    */
   private def submitStage(stage: Stage) {
     val jobId = activeJobForStage(stage)
     if (jobId.isDefined) {
