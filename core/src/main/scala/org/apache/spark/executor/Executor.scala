@@ -135,15 +135,21 @@ private[spark] class Executor(
 
   startDriverHeartbeater()
 
+  /**
+    * 启动task
+    */
   def launchTask(
       context: ExecutorBackend,
       taskId: Long,
       attemptNumber: Int,
       taskName: String,
       serializedTask: ByteBuffer): Unit = {
+
+    //为每一个task创建一个TaskRunner （线程）
     val tr = new TaskRunner(context, taskId = taskId, attemptNumber = attemptNumber, taskName,
       serializedTask)
     runningTasks.put(taskId, tr)
+    //将线程丢入线程池中执行，该线程池自动实现了排队机制
     threadPool.execute(tr)
   }
 
