@@ -83,6 +83,9 @@ private[spark] class CoarseGrainedExecutorBackend(
       .map(e => (e._1.substring(prefix.length).toLowerCase, e._2))
   }
 
+  /**
+    * add by uwoer
+    */
   override def receive: PartialFunction[Any, Unit] = {
     //driver注册RegisterExecutor成功之后会发来RegisteredExecutor消息
     //CoarseGrainedExecutorBackend会创建Executor对象做为执行句柄 大部分的功能都是由Executor实现的
